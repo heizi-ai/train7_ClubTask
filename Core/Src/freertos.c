@@ -39,13 +39,15 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef enum{motor_forward,motor_backward}Motor_State;
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define PID_FILTER_OLD_WEIGHT 0.7
+#define PID_FILTER_NEW_WEIGHT 0.3
+#define SPEED_FILTER_OLD_WEIGHT 0.7
+#define SPEED_FILTER_NEW_WEIGHT 0.3
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -55,12 +57,11 @@ typedef enum{motor_forward,motor_backward}Motor_State;
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-static float v_cmd = 0;
+static float filitered_pid_output = 0;
 volatile uint32_t print_stack_free=0;
 float motor_dealspeed=0;
 char receiveData[32]={0};
 char sendSpeedData[50]={0};
-Motor_State motor_state=forwardstate;
 volatile uint32_t size=0;
 volatile float motor_target;
 /* USER CODE END Variables */
@@ -274,21 +275,19 @@ void START_PRINT_SPEED_TASK(void *argument)
 * @retval None
 */
 /* USER CODE END Header_START_UART_TASK */
-void START_UART_TASK(void *argument)
-{
+void START_UART_TASK(void *argument) {
   /* USER CODE BEGIN START_UART_TASK */
   HAL_UARTEx_ReceiveToIdle_DMA(&huart6, receiveData, sizeof(receiveData));
 
   /* Infinite loop */
-  for(;;)
-  {
-    print_stack_free=uxTaskGetStackHighWaterMark(NULL)*sizeof(StackType_t);
-    motor_dealspeed=motor_speed*0.3+motor_dealspeed*0.7;
-    Uart_Motor(size,receiveData,&motor_target);
-    float out = PID_Calculation(&speed_pid, motor_target, motor_dealspeed);
-    v_cmd = v_cmd*0.7f + out*0.3f;
-    can_tx_send((int16_t)v_cmd);
-    // can_tx_send(10000);//闭环测试
+  for (;;) {
+    // print_stack_free=uxTaskGetStackHighWaterMark(NULL)*sizeof(StackType_t);//之前测试用的，忘删了
+    motor_dealspeed = motor_speed * SPEED_FILTER_NEW_WEIGHT + motor_dealspeed * SPEED_FILTER_OLD_WEIGHT;
+    Uart_Motor_SetTarget(size, receiveData, &motor_target);
+    float pid_output = PID_Calculation(&speed_pid, motor_target, motor_dealspeed);
+    filitered_pid_output = filitered_pid_output * PID_FILTER_OLD_WEIGHT + pid_output * PID_FILTER_NEW_WEIGHT;
+    can_set_motor1_voltage((int16_t) filitered_pid_output);
+    // can_set_motor1_voltage(10000);//闭环测试
     osDelay(10);
   }
   /* USER CODE END START_UART_TASK */
@@ -296,13 +295,14 @@ void START_UART_TASK(void *argument)
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart,uint16_t Size) {
-  if (huart==&huart6) {
-    size=Size;
-    if (receiveData[0]=='m'&&receiveData[1]=='o'&&receiveData[2]=='t'&&receiveData[3]=='o'&&receiveData[4]=='r'&&(receiveData[5]=='+'||receiveData[5]=='-')) {
-      for (int i=6;i<Size;i++) {
-        if (receiveData[i]>='0'&&receiveData[i]<='9') {
-            motor_flag=1;
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
+  if (huart == &huart6) {
+    size = Size;
+    if (receiveData[0] == 'm' && receiveData[1] == 'o' && receiveData[2] == 't' && receiveData[3] == 'o' && receiveData[
+          4] == 'r' && (receiveData[5] == '+' || receiveData[5] == '-')) {
+      for (int i = 6; i < Size; i++) {
+        if (receiveData[i] >= '0' && receiveData[i] <= '9') {
+          motor_flag = 1;
         }
       }
     }

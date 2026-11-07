@@ -1,15 +1,22 @@
 #ifndef SERVO_H
 #define SERVO_H
 
-#define SERVO_ANGLE 180
-#define SERVO_TURN_NUM SERVO_ANGLE/20
+#define SERVO_ONCE_TURN_ANGLE 20.0
+#define SERVO_ANGLE 180.0
+#define SERVO_TURN_NUM SERVO_ANGLE/SERVO_ONCE_TURN_ANGLE
+#define SERVO_ARR_VALUE 20000.0
+#define INIT_SERVO_PWM_VALUE_PERCENTAGE 0.025
+#define SERVO_PWM_INTERVAL_PERCENTAGE 0.1
+#define INIT_VALUE (SERVO_ARR_VALUE*INIT_SERVO_PWM_VALUE_PERCENTAGE)
+#define INTERVAL_VALUE (SERVO_ONCE_TURN_ANGLE/SERVO_ANGLE*SERVO_ARR_VALUE*SERVO_PWM_INTERVAL_PERCENTAGE)
 
-typedef enum{servo_forward,servo_backward}Servo_State;
+typedef enum { SERVO_FORWARD, SERVO_BACKWARD } Servo_State;
+
 extern Servo_State servo_state;
 
 void servo_init(void);
-void servo_turn(void);
 
+void servo_turn(void);
 
 
 #endif //SERVO_H

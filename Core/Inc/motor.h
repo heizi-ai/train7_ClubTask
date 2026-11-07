@@ -8,6 +8,6 @@
 #include "freertos_mpool.h"
 #include "cmsis_os2.h"
 #include "PID.h"
-void Uart_Motor(volatile uint32_t size,char * receiveData,float *motor_target);
+void Uart_Motor_SetTarget(volatile uint32_t size,char * receiveData,float *motor_target);
 
 #endif //MOTOR_H
