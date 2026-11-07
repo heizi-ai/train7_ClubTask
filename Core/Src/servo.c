@@ -10,7 +10,7 @@ void servo_init(void) {
     servo_state = SERVO_FORWARD;
     servo_turn_num = 0;
     value = INIT_VALUE;
-    __HAL_TIM_SET_COUNTER(&htim1, TIM_CHANNEL_1, value);
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, value);
 }
 
 void servo_turn(void) {
