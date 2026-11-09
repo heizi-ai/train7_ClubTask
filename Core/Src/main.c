@@ -99,10 +99,15 @@ int main(void)
   MX_USART6_UART_Init();
   MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
+  /* TIM5 计数器启动（红灯 PWM 用；下面还会单独启动 CH3 输出） */
   HAL_TIM_Base_Start(&htim5);
+  /* 舵机 PWM 通道启动：TIM1_CH1 → PE9（C 板 PWM 接口 C1） */
   HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);
+  /* 红灯 PWM 通道启动：TIM5_CH3 → PH12，只有启动后改占空比才有效 */
   HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3);
+  /* 速度环 PID 参数：kp=14, ki=1, kd=0（实测扫参得到的最优附近） */
   PID_Init(&speed_pid,14,1,0);
+  /* CAN1 过滤器 + 启动 + 接收中断，电机反馈从这里进来 */
   can_filter_init();
   /* USER CODE END 2 */
 
